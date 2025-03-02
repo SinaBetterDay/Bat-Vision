@@ -2,7 +2,7 @@ import cv2
 import os
 import math
 
-def split_image(image_path, output_dir, tile_size=1024, overlap=0.0001):
+def split_image(image_path, output_dir, tile_size=1024, overlap=0.1):
     """Split an image into overlapping tiles"""
     os.makedirs(output_dir, exist_ok=True)
     
