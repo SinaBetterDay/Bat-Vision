@@ -1,0 +1,15 @@
+path: /Users/senaramillawabandara/Desktop/SacHacks/LicensePlateDetection/data #dataset directory 
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+roboflow:
+  workspace: roboflow-universe-projects
+  project: license-plate-recognition-rxg4e
+  version: 4
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/roboflow-universe-projects/license-plate-recognition-rxg4e/dataset/4
+
+#Classes: 
+names:
+  0: plates
