@@ -6,30 +6,27 @@ const parkingLots = {
             row1: {
                 start: "G6VR+CMC University of California-Davis, California",
                 end: "G6VV+C2G University of California-Davis, California",
-                count: 32
+                count: 32,
+                available: 15
             },
             row2: {
                 start: "G6VR+9HG University of California-Davis, California",
                 end: "G6VV+98G University of California-Davis, California",
-                count: 64
+                count: 64,
+                available: 28
             }
         }
     },
     "Visitor Lot 22": {
         plusCode: "G6VV+WF Davis, California",
-        spots: {}
-    },
-    "Non-Visitor lot 41": {
-        plusCode: "G6QV+F5C University of California-Davis, California",
-        spots: {}
-    },
-    "Aggie Stadium, Visitor Lot": {
-        plusCode: "G6PP+3W6 University of California-Davis, California",
-        spots: {}
-    },
-    "Aggie Stadium, Non-Visitor Lot": {
-        plusCode: "G6PP+3JC University of California-Davis, California",
-        spots: {}
+        spots: {
+            row1: {
+                start: "G6VV+WF Davis, California",
+                end: "G6VV+WG Davis, California",
+                count: 20,
+                available: 8
+            }
+        }
     }
 };
 
@@ -39,105 +36,62 @@ async function initMap() {
         zoom: 16,
         center: { lat: 38.5382, lng: -121.7613 },
         mapTypeId: 'satellite',
-        tilt: 0,
-        styles: [
-            { featureType: "poi", stylers: [{ visibility: "off" }] },
-            { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] }
-        ]
+        tilt: 0
     });
 
-    // Force 2D view
-    map.setTilt(0);
-    
     // Create parking lots
     for (const [name, data] of Object.entries(parkingLots)) {
         await createParkingLot(name, data);
     }
 
     // Zoom listener
-    google.maps.event.addListener(map, 'zoom_changed', handleZoomChange);
-    
-    // Initialize live feeds
+    google.maps.event.addListener(map, 'zoom_changed', () => {
+        const zoom = map.getZoom();
+        window.lotMarkers.forEach(marker => {
+            marker.setVisible(zoom <= 17);
+        });
+    });
+
     createLiveFeedItems();
 }
 
 async function createParkingLot(name, data) {
     try {
         const position = await convertPlusCode(data.plusCode);
-        const totalSpots = Object.values(data.spots).reduce((sum, row) => sum + row.count, 0);
-        const availableSpots = calculateAvailableSpots(data.spots);
+        const available = Object.values(data.spots).reduce((sum, row) => sum + row.available, 0);
+        const total = Object.values(data.spots).reduce((sum, row) => sum + row.count, 0);
 
         const marker = new google.maps.Marker({
             position,
             map,
-            title: `${name} - ${availableSpots}/${totalSpots} available`,
-            icon: getLotIcon(availableSpots, totalSpots),
-            class: 'lot-marker',
-            zIndex: google.maps.Marker.MAX_ZINDEX + 1,
-            visible: map.getZoom() <= 17
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#3a86ff',
+                fillOpacity: 0.9,
+                strokeColor: 'white',
+                strokeWeight: 2,
+                scale: 10,
+                label: {
+                    text: `${available}`,
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                }
+            },
+            title: `${name} (${available}/${total} available)`
         });
 
         marker.addListener('click', async () => {
-            window.activeLot = data;
             map.setCenter(position);
             map.setZoom(19);
-            if (Object.keys(data.spots).length > 0) {
-                showSpots(await generateSpots(data.spots));
-            }
+            showSpots(await generateSpots(data.spots));
         });
 
-        // Store reference for zoom updates
-        marker.availableSpots = availableSpots;
-        marker.totalSpots = totalSpots;
+        window.lotMarkers = window.lotMarkers || [];
+        window.lotMarkers.push(marker);
+
     } catch (error) {
-        console.error(`Error creating ${name}:`, error);
-    }
-}
-
-function getLotIcon(available, total) {
-    const ratio = available / total;
-    return {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: ratio > 0.5 ? '#70e000' : ratio > 0.2 ? '#ffbe0b' : '#ff006e',
-        fillOpacity: 0.9,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-        scale: 8 + Math.log(total) * 1.5,
-        label: {
-            text: `${available}`,
-            color: '#ffffff',
-            fontSize: '14px',
-            fontWeight: 'bold'
-        }
-    };
-}
-
-function handleZoomChange() {
-    const zoom = map.getZoom();
-    
-    // Update lot markers
-    document.querySelectorAll('.lot-marker').forEach(marker => {
-        const shouldShow = zoom <= 17;
-        marker.setVisible(shouldShow);
-        
-        if (shouldShow) {
-            const scale = 6 + (zoom/2);
-            marker.setIcon({
-                ...marker.icon,
-                scale: Math.min(scale, 16),
-                label: {
-                    ...marker.icon.label,
-                    fontSize: `${Math.min(zoom * 0.8, 14)}px`
-                }
-            });
-        }
-    });
-
-    // Handle spot markers
-    if (zoom > 17 && window.activeLot) {
-        showSpots(window.activeLot.spots);
-    } else if (window.spotMarkers) {
-        window.spotMarkers.forEach(m => m.setMap(null));
+        console.error(`Error loading ${name}:`, error);
     }
 }
 
@@ -146,28 +100,22 @@ async function generateSpots(spotData) {
     for (const row of Object.values(spotData)) {
         const start = await convertPlusCode(row.start);
         const end = await convertPlusCode(row.end);
-        spots.push(...generateRowSpots(start, end, row.count));
+        const count = row.count;
+        
+        const latStep = (end.lat() - start.lat()) / (count - 1);
+        const lngStep = (end.lng() - start.lng()) / (count - 1);
+        
+        for (let i = 0; i < count; i++) {
+            spots.push({
+                position: {
+                    lat: start.lat() + (latStep * i),
+                    lng: start.lng() + (lngStep * i)
+                },
+                available: i < row.available
+            });
+        }
     }
     return spots;
-}
-
-function generateRowSpots(start, end, count) {
-    const latStep = (end.lat() - start.lat()) / (count - 1);
-    const lngStep = (end.lng() - start.lng()) / (count - 1);
-    
-    return Array.from({ length: count }, (_, i) => ({
-        position: {
-            lat: start.lat() + (latStep * i),
-            lng: start.lng() + (lngStep * i)
-        },
-        available: Math.random() > 0.5
-    }));
-}
-
-function calculateAvailableSpots(spotData) {
-    // Replace with actual AI data
-    return Object.values(spotData).reduce((sum, row) => 
-        sum + Math.floor(row.count * 0.6), 0);
 }
 
 async function convertPlusCode(plusCode) {
@@ -176,33 +124,46 @@ async function convertPlusCode(plusCode) {
             if (status === "OK") {
                 resolve(results[0].geometry.location);
             } else {
-                reject(new Error(`Geocode failed for ${plusCode}: ${status}`));
+                reject(`Failed to convert: ${plusCode}`);
             }
         });
     });
 }
 
+function showSpots(spots) {
+    if (window.spotMarkers) {
+        window.spotMarkers.forEach(m => m.setMap(null));
+    }
+    
+    window.spotMarkers = spots.map(spot => new google.maps.Marker({
+        position: spot.position,
+        map,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: spot.available ? '#70e000' : '#ff006e',
+            fillOpacity: 0.9,
+            strokeColor: 'white',
+            strokeWeight: 1,
+            scale: 6
+        }
+    }));
+}
+
 function createLiveFeedItems() {
     const container = document.getElementById('feed-grid');
-    container.innerHTML = '';
-    
-    Object.keys(parkingLots).forEach(lotName => {
+    Object.keys(parkingLots).forEach(lot => {
         const item = document.createElement('div');
         item.className = 'feed-item';
         item.innerHTML = `
             <div class="thumbnail"></div>
-            <div class="lot-name">${lotName}</div>
+            <div class="lot-name">${lot}</div>
         `;
-        item.onclick = () => showFeed(lotName);
+        item.onclick = () => {
+            document.getElementById('main-feed').src = `${lot.replace(/ /g, '_')}.mp4`;
+            document.getElementById('main-feed').play();
+        };
         container.appendChild(item);
     });
-}
-
-function showFeed(lotName) {
-    const video = document.getElementById('main-feed');
-    video.src = `videos/${lotName.replace(/ /g, '_')}.mp4`;
-    video.load();
-    video.play().catch(error => console.log('Video play failed:', error));
 }
 
 function showMainView(view) {
@@ -217,22 +178,4 @@ function showMainView(view) {
 function showView(viewId) {
     document.getElementById('map').style.display = viewId === 'map' ? 'block' : 'none';
     document.getElementById('live-feeds').style.display = viewId === 'live-feeds' ? 'block' : 'none';
-}
-
-function showSpots(spots) {
-    if (window.spotMarkers) spotMarkers.forEach(m => m.setMap(null));
-    
-    window.spotMarkers = spots.map(spot => new google.maps.Marker({
-        position: spot.position,
-        map,
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: spot.available ? '#70e000' : '#ff006e',
-            fillOpacity: 0.9,
-            strokeColor: '#fff',
-            strokeWeight: 1,
-            scale: 6
-        },
-        zIndex: 999
-    }));
 }
