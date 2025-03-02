@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bat Vision - UC Davis Parking</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <h1>Bat Vision</h1>
+        <div class="button-container">
+            <button onclick="showMainView('map')">Find Parking</button>
+            <button onclick="showMainView('live-feeds')">Live Feeds</button>
+        </div>
+        <div id="about">
+            <h2>About Bat Vision</h2>
+            <p>Revolutionizing parking at UC Davis with real-time spot detection and AI-powered availability tracking. Our mission is to reduce campus traffic and make parking stress-free.</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" style="display: none;">
+        <div id="top-bar">
+            <div class="nav-link" onclick="showView('map')">Map View</div>
+            <div class="nav-link" onclick="showView('live-feeds')">Live Feed</div>
+        </div>
+        
+        <div class="content-wrapper">
+            <div id="map"></div>
+            
+            <div id="live-feeds">
+                <div class="video-container">
+                    <video id="main-feed" controls>
+                        <source src="" type="video/mp4">
+                    </video>
+                </div>
+                <div class="feed-grid" id="feed-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAdX872rxq_rYGKXNq9Rsn8S1cZqKNPloo&callback=initMap" async defer></script>
+    <script src="app.js"></script>
+</body>
+</html>
