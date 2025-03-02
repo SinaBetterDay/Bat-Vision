@@ -1,0 +1,13 @@
+train: /Users/suhanishokeen/Desktop/parking space 4.v1i.yolov8/train/images
+val: /Users/suhanishokeen/Desktop/parking space 4.v1i.yolov8/valid/images
+test: /Users/suhanishokeen/Desktop/parking space 4.v1i.yolov8/test/images
+
+nc: 2
+names: ['occupied', 'vacant']
+
+roboflow:
+  workspace: parkinglotdetectionteamcentaurus
+  project: parking-space-4
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/parkinglotdetectionteamcentaurus/parking-space-4/dataset/1
