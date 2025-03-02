@@ -21,8 +21,26 @@ const parkingLots = {
                 start: { lat: 38.543449, lng: -121.758558 },
                 end: { lat: 38.543435, lng: -121.756670 },
                 count: 64,
-                available: 28
-            }
+                available: 49
+            },
+            row3: {
+                start: { lat: 38.543380, lng: -121.758566 },
+                end: { lat: 38.543365, lng: -121.756672 },
+                count: 64,
+                available: 13
+            },
+            row4: {
+                start: { lat: 38.543251, lng: -121.758566 },
+                end: { lat: 38.543245, lng: -121.756672 },
+                count: 64,
+                available: 0
+            },
+            row5: {
+                start: { lat: 38.543193, lng: -121.758566 },
+                end: { lat: 38.543177, lng: -121.756672 },
+                count: 64,
+                available: 50
+            },
         }
     },
     "Visitor Parking Lot 47": {
@@ -37,7 +55,7 @@ const parkingLots = {
                 start: { lat: 38.535221, lng: -121.756104 },
                 end: { lat: 38.535215, lng: -121.755596 },
                 count: 18,
-                available: 10 // Assuming 10 spots are available
+                available: 10
             }
         }
     }
